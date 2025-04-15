@@ -1,31 +1,35 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+
+	"github.com/jmeyers35/golox/pkg/scanner"
 )
 
 func main() {
-	if len(os.Args) > 1 {
+	args := os.Args[1:]
+	if len(args) > 1 {
 		fmt.Println("usage: golox [script]")
 		os.Exit(64)
-	} else if len(os.Args) == 1 {
-		RunFile(os.Args[0])
+	} else if len(args) == 1 {
+		RunFile(os.Args[1])
 	} else {
 		RunPrompt()
 	}
 }
 
 func RunPrompt() {
+	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
-		buf := make([]byte, 0, 1024)
-		_, err := os.Stdin.Read(buf)
+		bytes, err := reader.ReadBytes('\n')
 		if err != nil {
 			fmt.Printf("error reading input: %v\n", err)
 		}
 
-		run(buf)
+		run(bytes)
 	}
 }
 
@@ -39,5 +43,12 @@ func RunFile(path string) error {
 }
 
 func run(bytes []byte) error {
-	panic("unimplmented")
+	s := scanner.New()
+	tokens := s.Scan(bytes)
+
+	for _, token := range tokens {
+		fmt.Println(token)
+	}
+
+	return nil
 }
