@@ -1,5 +1,7 @@
 package scanner
 
+import "fmt"
+
 type TokenType int
 
 const (
@@ -56,6 +58,24 @@ const (
 	TOKENTYPE_EOF
 )
 
-type Token struct{}
+type Token struct {
+	Type    TokenType
+	Lexeme  string
+	Literal any
+	Line    int
+}
+
+func (t Token) String() string {
+	return fmt.Sprintf("%v %s %v", t.Type, t.Lexeme, t.Literal)
+}
+
+func eof(line int) Token {
+	return Token{
+		Type:    TOKENTYPE_EOF,
+		Lexeme:  "",
+		Literal: nil,
+		Line:    line,
+	}
+}
 
 type Tokens []Token
