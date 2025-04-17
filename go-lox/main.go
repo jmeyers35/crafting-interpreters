@@ -14,7 +14,10 @@ func main() {
 		fmt.Println("usage: golox [script]")
 		os.Exit(64)
 	} else if len(args) == 1 {
-		RunFile(os.Args[1])
+		err := RunFile(os.Args[1])
+		if err != nil {
+			os.Exit(65)
+		}
 	} else {
 		RunPrompt()
 	}

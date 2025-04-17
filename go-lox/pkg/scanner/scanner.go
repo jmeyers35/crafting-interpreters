@@ -1,9 +1,7 @@
 package scanner
 
-type Token struct{}
-
 type Scanner interface {
-	Scan([]byte) []Token
+	Scan([]byte) Tokens
 }
 
 type scannerImpl struct{}
