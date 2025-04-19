@@ -83,10 +83,32 @@ func (s *scannerImpl) scanToken() (Token, error) {
 		s.line += 1
 		return tokenNone, nil
 
+	case '"':
+		return s.string()
+
 	default:
 		return Token{}, errors.New("Unexpected character")
 
 	}
+}
+
+func (s *scannerImpl) string() (Token, error) {
+	for s.peek() != '"' && !s.done() {
+		if s.peek() == '\n' {
+			s.line += 1
+		}
+		s.advance()
+	}
+
+	if s.done() {
+		return tokenNone, errors.New("Unterminated string")
+	}
+
+	// consume closing quote
+	s.advance()
+
+	stringContents := s.source[s.start+1 : s.cursor]
+	return s.tokenAt(TOKENTYPE_STRING, stringContents), nil
 }
 
 // returns the byte at the current cursor, consuming it.
