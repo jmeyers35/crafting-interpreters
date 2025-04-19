@@ -6,6 +6,8 @@ import (
 	goloxerrors "github.com/jmeyers35/golox/pkg/errors"
 )
 
+var tokenNone = Token{}
+
 type Scanner interface {
 	Scan() Tokens
 }
@@ -26,7 +28,9 @@ func (s *scannerImpl) Scan() Tokens {
 		if err != nil {
 			goloxerrors.LogError(s.line, err.Error())
 		}
-		tokens = append(tokens, next)
+		if next != tokenNone {
+			tokens = append(tokens, next)
+		}
 	}
 	tokens = append(tokens, eof(s.line))
 	return tokens
@@ -54,18 +58,68 @@ func (s *scannerImpl) scanToken() (Token, error) {
 		return s.tokenAt(TOKENTYPE_PLUS, nil), nil
 	case ';':
 		return s.tokenAt(TOKENTYPE_SEMICOLON, nil), nil
-	case '*':
-		return s.tokenAt(TOKENTYPE_STAR, nil), nil
+	case '!':
+		return s.matchOr('=', TOKENTYPE_BANGEQUAL, TOKENTYPE_BANG), nil
+	case '<':
+		return s.matchOr('=', TOKENTYPE_LESSEQUAL, TOKENTYPE_LESS), nil
+	case '>':
+		return s.matchOr('=', TOKENTYPE_GREATEREQUAL, TOKENTYPE_GREATER), nil
+	case '=':
+		return s.matchOr('=', TOKENTYPE_EQUALEQUAL, TOKENTYPE_EQUAL), nil
+	case '/':
+		if s.match('/') {
+			for s.peek() != '\n' && !s.done() {
+				s.advance()
+			}
+			return tokenNone, nil
+		} else {
+			return s.tokenAt(TOKENTYPE_SLASH, nil), nil
+		}
+
+	case ' ', '\r', '\t':
+		return tokenNone, nil
+
+	case '\n':
+		s.line += 1
+		return tokenNone, nil
+
 	default:
 		return Token{}, errors.New("Unexpected character")
 
 	}
 }
 
+// returns the byte at the current cursor, consuming it.
 func (s *scannerImpl) advance() byte {
 	nextByte := s.source[s.cursor]
 	s.cursor += 1
 	return nextByte
+}
+
+// returns the byte at the current cursor without consuming it.
+func (s *scannerImpl) peek() byte {
+	if s.done() {
+		return 0
+	}
+	return s.source[s.cursor]
+}
+
+func (s *scannerImpl) matchOr(expected byte, match, or TokenType) Token {
+	if s.match(expected) {
+		return s.tokenAt(match, nil)
+	}
+	return s.tokenAt(or, nil)
+}
+
+func (s *scannerImpl) match(expected byte) bool {
+	if s.done() {
+		return false
+	}
+	if s.source[s.cursor] != expected {
+		return false
+	}
+	s.cursor += 1
+	return true
 }
 
 func (s *scannerImpl) tokenAt(tokenType TokenType, literal any) Token {
