@@ -2,6 +2,9 @@ package scanner
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
+	"unicode"
 
 	goloxerrors "github.com/jmeyers35/golox/pkg/errors"
 )
@@ -87,6 +90,9 @@ func (s *scannerImpl) scanToken() (Token, error) {
 		return s.string()
 
 	default:
+		if isDigit(b) {
+			return s.number()
+		}
 		return Token{}, errors.New("Unexpected character")
 
 	}
@@ -111,6 +117,27 @@ func (s *scannerImpl) string() (Token, error) {
 	return s.tokenAt(TOKENTYPE_STRING, stringContents), nil
 }
 
+func (s *scannerImpl) number() (Token, error) {
+	for isDigit(s.peek()) {
+		s.advance()
+	}
+
+	if s.peek() == '.' && isDigit(s.peekNext()) {
+		// consume the decimal
+		s.advance()
+		for isDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	parsed, err := strconv.ParseFloat(string(s.source[s.start:s.cursor+1]), 64)
+	if err != nil {
+		return Token{}, fmt.Errorf("parsing floating point number: %w", err)
+	}
+
+	return s.tokenAt(TOKENTYPE_NUMBER, parsed), nil
+}
+
 // returns the byte at the current cursor, consuming it.
 func (s *scannerImpl) advance() byte {
 	nextByte := s.source[s.cursor]
@@ -124,6 +151,13 @@ func (s *scannerImpl) peek() byte {
 		return 0
 	}
 	return s.source[s.cursor]
+}
+
+func (s *scannerImpl) peekNext() byte {
+	if s.cursor+1 >= len(s.source) {
+		return 0
+	}
+	return s.source[s.cursor+1]
 }
 
 func (s *scannerImpl) matchOr(expected byte, match, or TokenType) Token {
@@ -163,4 +197,13 @@ func New(source string) Scanner {
 		line:   1,
 		source: []byte(source),
 	}
+}
+
+func isDigit(b byte) bool {
+	return unicode.IsDigit(rune(b))
+}
+
+func isAlpha(b byte) bool {
+	// TODO
+	return false
 }
